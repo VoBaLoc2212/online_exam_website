@@ -4,6 +4,8 @@ export interface WebSocketMessage {
   type: string;
   data?: any;
   message?: string;
+  event?: string;
+  sessionId?: string;
 }
 
 export function useWebSocket(sessionId?: string) {

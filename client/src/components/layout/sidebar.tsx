@@ -159,6 +159,17 @@ export function Sidebar({ isOpen, onClose, user, antiCheatStats, isTestMode }: S
                   variant="ghost"
                   size="sm"
                   className="text-muted-foreground hover:text-foreground"
+                  onClick={async () => {
+                    try {
+                      await fetch('/api/logout', { 
+                        method: 'POST',
+                        credentials: 'include'
+                      });
+                      window.location.reload();
+                    } catch (error) {
+                      console.error('Logout failed:', error);
+                    }
+                  }}
                   data-testid="button-logout"
                 >
                   <LogOut className="w-4 h-4" />

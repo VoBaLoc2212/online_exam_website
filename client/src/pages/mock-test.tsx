@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -108,13 +108,15 @@ export default function MockTest() {
 
   const { data: testWithQuestions } = useQuery({
     queryKey: ['/api/tests', activeSession?.testId],
-    enabled: !!activeSession?.testId,
-    onSuccess: (data) => {
-      if (data?.questions) {
-        setSessionQuestions(data.questions);
-      }
-    }
+    enabled: !!activeSession?.testId
   });
+
+  // Update session questions when test data changes
+  React.useEffect(() => {
+    if (testWithQuestions?.questions) {
+      setSessionQuestions(testWithQuestions.questions);
+    }
+  }, [testWithQuestions]);
 
   const filteredTests = tests?.filter(test => {
     const typeMatch = selectedTestType === 'all' || test.testType === selectedTestType;
@@ -182,7 +184,7 @@ export default function MockTest() {
       <TestInterface
         session={activeSession}
         questions={sessionQuestions}
-        testName={testWithQuestions?.name || 'Mock Test'}
+        testName={(testWithQuestions as any)?.name || 'Mock Test'}
         onAnswerChange={handleAnswerChange}
         onQuestionNavigate={handleQuestionNavigate}
         onMarkQuestion={handleMarkQuestion}

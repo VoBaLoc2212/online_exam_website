@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
@@ -7,6 +7,26 @@ import multer from "multer";
 import XLSX from "xlsx";
 import mammoth from "mammoth";
 
+// Extend Request interface to include session
+declare module 'express-session' {
+  interface SessionData {
+    userId: string;
+  }
+}
+
+interface AuthenticatedRequest extends Request {
+  session: {
+    userId: string;
+    save: (callback?: (err: any) => void) => void;
+    destroy: (callback?: (err: any) => void) => void;
+  }
+}
+
+// Extend WebSocket interface for session tracking
+interface ExtendedWebSocket extends WebSocket {
+  sessionId?: string;
+}
+
 const upload = multer({ 
   dest: 'uploads/',
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
@@ -14,8 +34,9 @@ const upload = multer({
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication middleware
-  const requireAuth = (req: any, res: any, next: any) => {
-    if (!req.session?.userId) {
+  const requireAuth = (req: Request, res: Response, next: any) => {
+    const authReq = req as AuthenticatedRequest;
+    if (!authReq.session?.userId) {
       return res.status(401).json({ message: "Authentication required" });
     }
     next();
@@ -38,10 +59,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const user = await storage.createUser(userData);
-      req.session.userId = user.id;
+      const authReq = req as AuthenticatedRequest;
+      authReq.session.userId = user.id;
       
       res.json({ user: { id: user.id, username: user.username, email: user.email, fullName: user.fullName } });
-    } catch (error) {
+    } catch (error: any) {
       res.status(400).json({ message: "Invalid user data", error: error.message });
     }
   });
@@ -55,7 +77,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
-      req.session.userId = user.id;
+      const authReq = req as AuthenticatedRequest;
+      authReq.session.userId = user.id;
       res.json({ user: { id: user.id, username: user.username, email: user.email, fullName: user.fullName } });
     } catch (error) {
       res.status(500).json({ message: "Login failed" });
@@ -63,14 +86,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/logout", (req, res) => {
-    req.session.destroy(() => {
+    const authReq = req as AuthenticatedRequest;
+    authReq.session.destroy(() => {
       res.json({ message: "Logged out successfully" });
     });
   });
 
   app.get("/api/me", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser(req.session.userId);
+      const authReq = req as AuthenticatedRequest;
+      const user = await storage.getUser(authReq.session.userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -84,7 +109,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Question Bank routes
   app.get("/api/question-banks", requireAuth, async (req, res) => {
     try {
-      const questionBanks = await storage.getQuestionBanks(req.session.userId);
+      const authReq = req as AuthenticatedRequest;
+      const questionBanks = await storage.getQuestionBanks(authReq.session.userId);
       res.json(questionBanks);
     } catch (error) {
       res.status(500).json({ message: "Failed to get question banks" });

@@ -120,7 +120,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(questionBanks)
       .where(eq(questionBanks.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // Question methods
@@ -165,7 +165,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(questions)
       .where(eq(questions.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // Test methods
@@ -203,7 +203,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(tests)
       .where(eq(tests.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // Test Session methods
@@ -307,7 +307,7 @@ export class DatabaseStorage implements IStorage {
     if (recentResults.length > 0) {
       const today = new Date();
       const dates = recentResults.map(r => r.completedAt.toDateString());
-      const uniqueDates = [...new Set(dates)];
+      const uniqueDates = Array.from(new Set(dates));
       
       for (let i = 0; i < uniqueDates.length; i++) {
         const date = new Date(uniqueDates[i]);

@@ -17,6 +17,7 @@ import MockTest from "@/pages/mock-test";
 import Results from "@/pages/results";
 import QuestionBank from "@/pages/question-bank";
 import TestManagement from "@/pages/test-management";
+import Login from "@/pages/login";
 import NotFound from "@/pages/not-found";
 
 function AppContent() {
@@ -44,8 +45,10 @@ function AppContent() {
     staleTime: Infinity,
   });
 
-  // For now, we'll show the main app regardless of auth status
-  // In production, you'd want to implement proper auth flows
+  // Show login page if user is not authenticated
+  if (user === null) {
+    return <Login />;
+  }
   
   const pageRoutes = [
     { path: "/", title: t('dashboard'), subtitle: t('welcomeBack') },
