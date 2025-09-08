@@ -1,0 +1,130 @@
+DỰ ÁN 1: ỨNG DỤNG THI ONLINE
+1. Bối cảnh sử dụng
+Tôi là người học ngoại ngữ, cần một hệ thống luyện thi trực tuyến để chuẩn bị thi Aptis ESOL và VSTEP.
+
+
+Tôi mong muốn hệ thống có khả năng tạo và quản lý đề thi trắc nghiệm, cung cấp giao diện luyện thi thân thiện, và hỗ trợ cảnh báo chống gian lận.
+
+
+Hệ thống dùng được trên trình duyệt web và thiết bị di động.
+
+
+
+2. Các yêu cầu chức năng (Functional Requirements)
+2.1. Luyện thi Aptis ESOL
+Cung cấp ngân hàng câu hỏi theo cấu trúc chuẩn của kỳ thi Aptis (Grammar, Vocabulary, Reading, Listening, Writing, Speaking).
+
+
+Có chế độ thi thử với giới hạn thời gian và chế độ luyện tập từng kỹ năng.
+
+
+Hiển thị kết quả chi tiết: số câu đúng, thời gian làm, điểm quy đổi theo thang điểm Aptis.
+
+
+2.2. Luyện thi VSTEP
+Có sẵn ngân hàng đề mẫu theo chuẩn cấu trúc kỳ thi VSTEP 4 kỹ năng.
+
+
+Cho phép thi thử đủ 4 kỹ năng (đặc biệt Listening, Reading dạng trắc nghiệm).
+
+
+Hỗ trợ chấm điểm tự động cho Reading/Listening và gợi ý chấm Writing/Speaking theo rubric.
+
+
+2.3. Quản lý đề thi & Import câu hỏi
+Cho phép tạo đề thi trắc nghiệm thủ công hoặc import từ file Word/Excel theo format chuẩn (ví dụ: mỗi câu hỏi gồm nội dung, 4 đáp án, đáp án đúng, giải thích).
+
+
+Hỗ trợ ngân hàng câu hỏi phân loại theo chủ đề, mức độ, kỹ năng.
+
+
+Cho phép trộn đề tự động để tạo nhiều phiên bản.
+
+
+2.4. Giám sát thi & Chống gian lận
+Hệ thống phải cảnh báo khi người dùng thoát khỏi màn hình thi, chuyển tab hoặc không tương tác trong một thời gian.
+
+
+Có log lưu lại số lần thoát tab.
+
+
+Tùy chọn chụp ảnh webcam định kỳ (nếu người dùng đồng ý).
+
+
+2.5. Giao diện & Trải nghiệm người dùng
+Thiết kế hiện đại, trực quan, dễ sử dụng.
+
+
+Có chế độ Dark mode / Light mode.
+
+
+Phân tách rõ ràng các phần: Luyện tập – Thi thử – Xem kết quả – Quản lý đề thi.
+
+
+Hỗ trợ ngôn ngữ: tiếng Việt và tiếng Anh.
+
+
+
+3. Các yêu cầu phi chức năng (Non-Functional Requirements)
+Hệ thống chạy ổn định trên web (Chrome, Edge, Safari) và ứng dụng mobile.
+
+
+Đáp ứng đồng thời ít nhất 200 người thi.
+
+
+Bảo mật thông tin cá nhân và kết quả thi.
+
+
+Thời gian phản hồi câu hỏi/dữ liệu < 2 giây.
+
+
+
+4. So sánh với các phần mềm hiện có
+Tiêu chí
+Google Form + Add-on
+Quizizz
+Moodle Quiz
+Yêu cầu của tôi
+Thiết kế bài trắc nghiệm
+Có (đơn giản)
+Có (game hóa)
+Có (đầy đủ)
+Có, nhưng theo chuẩn Aptis/VSTEP
+Import từ Word/Excel
+Khó khăn
+Không hỗ trợ
+Có plugin
+Phải có
+Cảnh báo thoát màn hình
+Không
+Không
+Có plugin
+Bắt buộc có
+Luyện tập Aptis/VSTEP
+Không
+Không
+Không
+Bắt buộc có
+Báo cáo kết quả chi tiết
+Có (cơ bản)
+Có (tương tác)
+Có (chi tiết)
+Có, chuẩn hóa theo bài thi
+Giao diện
+Đơn giản
+Màu sắc, vui nhộn
+Cơ bản, học thuật
+Hiện đại, dễ dùng
+
+
+5. Kết quả mong đợi
+Phần mềm cho phép tôi luyện thi và thi thử online theo cấu trúc chuẩn Aptis ESOL và VSTEP.
+
+
+Có chức năng quản lý, import và trộn đề thi tiện lợi.
+
+
+Đảm bảo chống gian lận cơ bản, cảnh báo khi người dùng thoát màn hình.
+
+
+Giao diện trực quan, đẹp, dễ thao tác.
