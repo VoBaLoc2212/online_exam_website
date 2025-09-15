@@ -106,7 +106,7 @@ export default function MockTest() {
     }
   });
 
-  const { data: testWithQuestions } = useQuery({
+  const { data: testWithQuestions } = useQuery<{ questions: Question[]; name?: string }>({
     queryKey: ['/api/tests', activeSession?.testId],
     enabled: !!activeSession?.testId
   });

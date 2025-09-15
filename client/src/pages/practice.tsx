@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInView } from "react-intersection-observer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +15,8 @@ import {
   Dumbbell,
   Brain,
   Volume2,
-  FileText
+  FileText,
+  Loader2
 } from "lucide-react";
 
 interface QuestionBank {
@@ -24,23 +26,55 @@ interface QuestionBank {
   testType: 'aptis' | 'vstep' | 'custom';
   skillType: 'reading' | 'listening' | 'grammar' | 'vocabulary' | 'writing' | 'speaking';
   questionCount: number;
+  examDuration: number;
   createdAt: string;
+}
+
+interface PaginatedResponse {
+  questionBanks: QuestionBank[];
+  totalCount: number;
+  currentPage: number;
+  totalPages: number;
 }
 
 export default function Practice() {
   const { t } = useTranslation();
+  const { ref, inView } = useInView();
   const [selectedTestType, setSelectedTestType] = useState<string>('all');
   const [selectedSkill, setSelectedSkill] = useState<string>('all');
 
-  const { data: questionBanks } = useQuery<QuestionBank[]>({
-    queryKey: ['/api/question-banks']
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    isError
+  } = useInfiniteQuery<PaginatedResponse>({
+    queryKey: ["practiceQuestionBanks", selectedTestType, selectedSkill],
+    queryFn: async ({ pageParam = 1 }) => {
+      const response = await fetch(
+        `/api/practice/question-banks?page=${pageParam}&limit=10&testType=${selectedTestType}&skillType=${selectedSkill}`,
+        { credentials: "include" }
+      );
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      return response.json();
+    },
+    getNextPageParam: (lastPage) =>
+      lastPage.currentPage < lastPage.totalPages
+        ? lastPage.currentPage + 1
+        : undefined,
+    initialPageParam: 1,
   });
 
-  const filteredBanks = questionBanks?.filter(bank => {
-    const typeMatch = selectedTestType === 'all' || bank.testType === selectedTestType;
-    const skillMatch = selectedSkill === 'all' || bank.skillType === selectedSkill;
-    return typeMatch && skillMatch;
-  }) || [];
+  // Load next page when last item is visible
+  if (inView && hasNextPage && !isFetchingNextPage) {
+    fetchNextPage();
+  }
+
+  const allBanks = data?.pages.flatMap(page => page.questionBanks) || [];
 
   const getSkillIcon = (skill: string) => {
     switch (skill) {
@@ -133,7 +167,31 @@ export default function Practice() {
 
       {/* Question Banks Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredBanks.length === 0 ? (
+        {isLoading ? (
+          // Loading skeleton
+          Array.from({ length: 6 }).map((_, index) => (
+            <Card key={index} className="animate-pulse">
+              <CardHeader>
+                <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-full"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        ) : isError ? (
+          <div className="col-span-full text-center py-12">
+            <h3 className="text-lg font-medium text-foreground mb-2">
+              Error loading question banks
+            </h3>
+            <p className="text-muted-foreground mb-4">
+              Please try again later
+            </p>
+          </div>
+        ) : allBanks.length === 0 ? (
           <div className="col-span-full text-center py-12">
             <Dumbbell className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium text-foreground mb-2">
@@ -150,7 +208,7 @@ export default function Practice() {
             </Link>
           </div>
         ) : (
-          filteredBanks.map((bank) => {
+          allBanks.map((bank) => {
             const SkillIcon = getSkillIcon(bank.skillType);
             return (
               <Card key={bank.id} className="hover:shadow-lg transition-shadow" data-testid={`question-bank-${bank.id}`}>
@@ -188,20 +246,15 @@ export default function Practice() {
                     </span>
                     <span className="flex items-center">
                       <Clock className="w-4 h-4 mr-1" />
-                      ~{Math.ceil(bank.questionCount * 1.5)} min
+                      {bank.examDuration} minutes
                     </span>
                   </div>
 
                   <div className="flex space-x-2">
-                    <Link href={`/practice/${bank.id}`} className="flex-1">
+                    <Link href={`/practice/${bank.id}/session`} className="flex-1">
                       <Button className="w-full" data-testid={`start-practice-${bank.id}`}>
                         <Play className="w-4 h-4 mr-2" />
-                        Start Practice
-                      </Button>
-                    </Link>
-                    <Link href={`/question-bank/${bank.id}`}>
-                      <Button variant="outline" size="sm">
-                        <BookOpen className="w-4 h-4" />
+                        Practice Now
                       </Button>
                     </Link>
                   </div>
@@ -209,6 +262,18 @@ export default function Practice() {
               </Card>
             );
           })
+        )}
+        
+        {/* Infinite scroll trigger */}
+        {(hasNextPage || isFetchingNextPage) && (
+          <div
+            ref={ref}
+            className="col-span-full flex justify-center py-4"
+          >
+            {isFetchingNextPage && (
+              <Loader2 className="w-6 h-6 animate-spin" />
+            )}
+          </div>
         )}
       </div>
 

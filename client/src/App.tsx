@@ -18,7 +18,9 @@ import Results from "@/pages/results";
 import QuestionBank from "@/pages/question-bank";
 import TestManagement from "@/pages/test-management";
 import Login from "@/pages/login";
+import Register from "@/pages/register";
 import NotFound from "@/pages/not-found";
+import QuestionsPage from "./pages/questions";
 
 function AppContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -47,7 +49,12 @@ function AppContent() {
 
   // Show login page if user is not authenticated
   if (user === null) {
-    return <Login />;
+    return (
+      <Switch>
+        <Route path="/register" component={Register} />
+        <Route component={Login} />
+      </Switch>
+    );
   }
   
   const pageRoutes = [
@@ -57,6 +64,7 @@ function AppContent() {
     { path: "/results", title: t('results'), subtitle: "Track your progress and analyze your performance" },
     { path: "/question-bank", title: t('questionBank'), subtitle: "Manage your question collections and import new content" },
     { path: "/test-management", title: t('testManagement'), subtitle: "Create and manage your test configurations" },
+    { path: "/question-bank/:questionbankId/questions", title: t("Questions"), subtitle: "View and manage questions in this question bank" },
   ];
 
   return (
@@ -86,6 +94,7 @@ function AppContent() {
                       <Route path="/results" component={Results} />
                       <Route path="/question-bank" component={QuestionBank} />
                       <Route path="/test-management" component={TestManagement} />
+                      <Route path="/question-bank/:questionbankId/questions" component={QuestionsPage}/>
                     </Switch>
                   </main>
                 </>

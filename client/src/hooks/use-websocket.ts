@@ -23,28 +23,42 @@ export function useWebSocket(sessionId?: string) {
     sendMessage({
       type: 'anti_cheat_event',
       event,
-      data
+      data,
     });
   };
   
   useEffect(() => {
+    // Nếu chưa login/register thì không connect
     if (!sessionId) return;
-    
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+
+    // Nếu muốn disable WS hoàn toàn (ví dụ server chưa bật)
+    if (import.meta.env.VITE_DISABLE_WS === 'true') {
+      console.warn('WebSocket disabled (VITE_DISABLE_WS=true)');
+      return;
+    }
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/ws`;
-    
-    ws.current = new WebSocket(wsUrl);
-    
-    ws.current.onopen = () => {
+
+    let socket: WebSocket;
+    try {
+      socket = new WebSocket(wsUrl);
+    } catch (err) {
+      console.warn('WebSocket connection failed to create:', err);
+      return;
+    }
+
+    ws.current = socket;
+
+    socket.onopen = () => {
       setIsConnected(true);
-      // Join session for monitoring
       sendMessage({
         type: 'join_session',
-        sessionId
+        sessionId,
       });
     };
-    
-    ws.current.onmessage = (event) => {
+
+    socket.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data);
         setLastMessage(message);
@@ -52,27 +66,25 @@ export function useWebSocket(sessionId?: string) {
         console.error('Failed to parse WebSocket message:', error);
       }
     };
-    
-    ws.current.onclose = () => {
+
+    socket.onclose = () => {
       setIsConnected(false);
     };
-    
-    ws.current.onerror = (error) => {
-      console.error('WebSocket error:', error);
+
+    socket.onerror = (error) => {
+      console.warn('WebSocket error (server may not be running):', error);
       setIsConnected(false);
     };
-    
+
     return () => {
-      if (ws.current) {
-        ws.current.close();
-      }
+      socket.close();
     };
   }, [sessionId]);
-  
+
   return {
     isConnected,
     lastMessage,
     sendMessage,
-    sendAntiCheatEvent
+    sendAntiCheatEvent,
   };
 }

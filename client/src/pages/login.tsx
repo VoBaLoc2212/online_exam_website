@@ -60,10 +60,7 @@ export default function Login() {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleDemoLogin = () => {
-    setFormData({ username: 'demo', password: 'demo123' });
-    loginMutation.mutate({ username: 'demo', password: 'demo123' });
-  };
+
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6" data-testid="login-page">
@@ -143,30 +140,19 @@ export default function Login() {
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t" />
               </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  Or try demo
-                </span>
-              </div>
             </div>
-
-            <Button 
-              variant="outline" 
-              className="w-full"
-              onClick={handleDemoLogin}
-              disabled={loginMutation.isPending}
-              data-testid="button-demo-login"
-            >
-              <GraduationCap className="w-4 h-4 mr-2" />
-              Demo Account (demo / demo123)
-            </Button>
           </CardContent>
         </Card>
 
         <div className="text-center mt-6">
           <p className="text-sm text-muted-foreground">
             New to EduTest Pro?{' '}
-            <Button variant="link" className="p-0 h-auto text-primary" data-testid="link-register">
+            <Button 
+              variant="link" 
+              className="p-0 h-auto text-primary" 
+              data-testid="link-register"
+              onClick={() => navigate('/register')}
+            >
               Create an account
             </Button>
           </p>

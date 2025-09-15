@@ -3,30 +3,37 @@ import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { pool } from "./db";
+import { pool, dbPromise } from "./db";
+import { WebSocketServer } from "ws";
+import http from "http";
 
 const app = express();
+const httpServer = http.createServer(app);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Session configuration
 const PgSession = connectPgSimple(session);
 
-app.use(session({
-  store: new PgSession({
-    pool: pool,
-    tableName: 'user_sessions'
-  }),
-  secret: process.env.SESSION_SECRET || 'your-secret-key-here',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: false, // Set to true in production with HTTPS
-    httpOnly: true,
-    maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
-  }
-}));
+app.use(
+  session({
+    store: new PgSession({
+      pool: pool,
+      tableName: "user_sessions",
+    }),
+    secret: process.env.SESSION_SECRET || "default",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: false, // Set to true in production with HTTPS
+      httpOnly: true,
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    },
+  })
+);
 
+// Logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -45,11 +52,9 @@ app.use((req, res, next) => {
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
-
       if (logLine.length > 80) {
         logLine = logLine.slice(0, 79) + "…";
       }
-
       log(logLine);
     }
   });
@@ -58,35 +63,76 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
+  try {
+    // Wait for database connection
+    await dbPromise;
+    console.log('Database initialized successfully');
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    // Initialize session store table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS "session" (
+        "sid" varchar NOT NULL COLLATE "default",
+        "sess" json NOT NULL,
+        "expire" timestamp(6) NOT NULL,
+        CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
+      )
+    `);
+    console.log('Session table initialized');
+
+    await registerRoutes(app);
+
+    // Global error handler
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      console.error("Server error:", err);
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
+    
+    if (!res.headersSent) {
+      // Send JSON for API requests
+      if (_req.path.startsWith("/api")) {
+        res.status(status).json({ message });
+      } else {
+        // Send HTML for other requests in development
+        const isDev = app.get("env") === "development";
+        if (isDev) {
+          res.status(status).send(`
+            <html>
+              <head>
+                <title>Server Error</title>
+                <style>
+                  body { font-family: system-ui; padding: 2rem; line-height: 1.5; }
+                  pre { background: #f0f0f0; padding: 1rem; border-radius: 4px; }
+                </style>
+              </head>
+              <body>
+                <h1>Server Error</h1>
+                <p>${message}</p>
+                ${isDev && err.stack ? `<pre>${err.stack}</pre>` : ''}
+              </body>
+            </html>
+          `);
+        } else {
+          // Simple error page in production
+          res.status(status).send("Server Error");
+        }
+      }
+    }
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
+    if (app.get("env") === "development") {
+      await setupVite(app, httpServer);
+    } else {
+      serveStatic(app);
+    }
+
+    const PORT = parseInt(process.env.PORT || "5000", 10);
+    const HOST = process.env.HOST || "localhost";
+
+    httpServer.listen(PORT, HOST, () => {
+      console.log(`Server running at http://${HOST}:${PORT}`);
+    });
+  } catch (err) {
+    console.error('Failed to start server:', err);
+    process.exit(1);
   }
-
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '5000', 10);
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
 })();

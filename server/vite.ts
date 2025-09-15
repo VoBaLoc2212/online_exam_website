@@ -20,6 +20,11 @@ export function log(message: string, source = "express") {
 }
 
 export async function setupVite(app: Express, server: Server) {
+  // Handle favicon.ico requests early
+  app.get("/favicon.ico", (_req, res) => {
+    res.status(204).end(); // No content response for favicon
+  });
+
   const serverOptions = {
     middlewareMode: true,
     hmr: { server },
@@ -29,13 +34,7 @@ export async function setupVite(app: Express, server: Server) {
   const vite = await createViteServer({
     ...viteConfig,
     configFile: false,
-    customLogger: {
-      ...viteLogger,
-      error: (msg, options) => {
-        viteLogger.error(msg, options);
-        process.exit(1);
-      },
-    },
+    customLogger: viteLogger,
     server: serverOptions,
     appType: "custom",
   });
@@ -52,6 +51,11 @@ export async function setupVite(app: Express, server: Server) {
         "index.html",
       );
 
+      // Check if file exists
+      if (!fs.existsSync(clientTemplate)) {
+        throw new Error(`Could not find index.html at ${clientTemplate}`);
+      }
+
       // always reload the index.html file from disk incase it changes
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
       template = template.replace(
@@ -61,8 +65,28 @@ export async function setupVite(app: Express, server: Server) {
       const page = await vite.transformIndexHtml(url, template);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {
-      vite.ssrFixStacktrace(e as Error);
-      next(e);
+      const error = e as Error;
+      vite.ssrFixStacktrace(error);
+      console.error("Error serving index.html:", error.message);
+      
+      // Send a more user-friendly error in development
+      res.status(500).send(`
+        <html>
+          <head>
+            <title>Development Server Error</title>
+            <style>
+              body { font-family: system-ui; padding: 2rem; line-height: 1.5; }
+              pre { background: #f0f0f0; padding: 1rem; border-radius: 4px; }
+            </style>
+          </head>
+          <body>
+            <h1>Development Server Error</h1>
+            <p>An error occurred while loading the development server:</p>
+            <pre>${error.message}</pre>
+            <p>Check the terminal for more details.</p>
+          </body>
+        </html>
+      `);
     }
   });
 }

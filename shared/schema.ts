@@ -23,6 +23,7 @@ export const questionBanks = pgTable("question_banks", {
   description: text("description"),
   testType: testTypeEnum("test_type").notNull(),
   skillType: skillTypeEnum("skill_type").notNull(),
+  examDuration: integer("exam_duration").notNull(), // in minutes
   createdBy: varchar("created_by").notNull().references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -82,6 +83,13 @@ export const results = pgTable("results", {
   skillBreakdown: jsonb("skill_breakdown").notNull(), // Skill-wise performance
   timeSpent: integer("time_spent").notNull(), // in seconds
   completedAt: timestamp("completed_at").defaultNow().notNull(),
+});
+
+// Session store table for connect-pg-simple
+export const userSessions = pgTable("user_sessions", {
+  sid: varchar("sid").primaryKey(),
+  sess: jsonb("sess").notNull(),
+  expire: timestamp("expire", { mode: "date" }).notNull(),
 });
 
 // Relations
