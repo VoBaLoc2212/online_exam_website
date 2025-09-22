@@ -29,14 +29,14 @@ export default function Login() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/me'] });
       toast({ 
-        title: "Login successful",
-        description: `Welcome back, ${data.user.fullName}!`
+        title: t('loginSuccessful'),
+        description: `${t('welcome')}, ${data.user.fullName}!`
       });
       navigate('/');
     },
     onError: (error: any) => {
       toast({ 
-        title: "Login failed",
+        title: t('loginFailed'),
         description: error.message || "Invalid credentials",
         variant: "destructive" 
       });
@@ -47,8 +47,8 @@ export default function Login() {
     e.preventDefault();
     if (!formData.username || !formData.password) {
       toast({
-        title: "Missing information",
-        description: "Please enter both username and password",
+        title: t('missingInformation'),
+        description: t('enterBothCredentials'),
         variant: "destructive"
       });
       return;
@@ -76,22 +76,22 @@ export default function Login() {
               <p className="text-sm text-muted-foreground">Language Testing Platform</p>
             </div>
           </div>
-          <h2 className="text-xl font-semibold text-foreground mb-2">Welcome back</h2>
-          <p className="text-muted-foreground">Sign in to continue your learning journey</p>
+          <h2 className="text-xl font-semibold text-foreground mb-2">{t('welcomeBackTitle')}</h2>
+          <p className="text-muted-foreground">{t('signInSubtitle')}</p>
         </div>
 
         <Card>
           <CardHeader className="space-y-1">
-            <CardTitle className="text-xl">Sign in</CardTitle>
+            <CardTitle className="text-xl">{t('signIn')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
+                <Label htmlFor="username">{t('username')}</Label>
                 <Input
                   id="username"
                   type="text"
-                  placeholder="Enter your username"
+                  placeholder={t('enterUsername')}
                   value={formData.username}
                   onChange={(e) => handleInputChange('username', e.target.value)}
                   data-testid="input-username"
@@ -99,12 +99,12 @@ export default function Login() {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{t('password')}</Label>
                 <div className="relative">
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
+                    placeholder={t('enterPassword')}
                     value={formData.password}
                     onChange={(e) => handleInputChange('password', e.target.value)}
                     data-testid="input-password"
@@ -132,7 +132,7 @@ export default function Login() {
                 disabled={loginMutation.isPending}
                 data-testid="button-login"
               >
-                {loginMutation.isPending ? "Signing in..." : "Sign in"}
+                {loginMutation.isPending ? t('signingIn') : t('signIn')}
               </Button>
             </form>
 

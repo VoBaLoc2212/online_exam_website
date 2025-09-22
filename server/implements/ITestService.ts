@@ -2,10 +2,13 @@ import { Test, InsertTest, TestSession, InsertTestSession, Result, InsertResult 
 
 export interface ITestService {
   getTests(userId: string): Promise<Test[]>;
+  getAllTests(): Promise<Test[]>;
   getTest(id: string): Promise<Test | undefined>;
   createTest(test: InsertTest): Promise<Test>;
   updateTest(id: string, updates: Partial<InsertTest>): Promise<Test | undefined>;
   deleteTest(id: string): Promise<boolean>;
+  hasUserCompletedTest(userId: string, testId: string): Promise<boolean>;
+  getTestHistory(userId: string): Promise<any>;
 }
 
 export interface ITestSessionService {
@@ -14,6 +17,7 @@ export interface ITestSessionService {
   createTestSession(session: InsertTestSession): Promise<TestSession>;
   updateTestSession(id: string, updates: Partial<InsertTestSession>): Promise<TestSession | undefined>;
   completeTestSession(id: string): Promise<TestSession | undefined>;
+  terminateTestSession(id: string, reason: string): Promise<TestSession | undefined>;
 }
 
 export interface IResultService {

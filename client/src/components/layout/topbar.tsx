@@ -12,14 +12,14 @@ interface TopbarProps {
 
 export function Topbar({ onSidebarToggle, title, subtitle }: TopbarProps) {
   const { theme, setTheme } = useTheme();
-  const { t, language, switchLanguage } = useTranslation();
+  const { t, currentLanguage, changeLanguage } = useTranslation();
 
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light');
   };
 
   const handleLanguageChange = (lang: Language) => {
-    switchLanguage(lang);
+    changeLanguage(lang);
   };
 
   return (
@@ -56,7 +56,7 @@ export function Topbar({ onSidebarToggle, title, subtitle }: TopbarProps) {
               onClick={() => handleLanguageChange('en')}
               className={cn(
                 "px-3 py-1 text-sm rounded-md font-medium",
-                language === 'en' 
+                currentLanguage === 'en' 
                   ? "bg-primary text-primary-foreground" 
                   : "text-muted-foreground hover:text-foreground"
               )}
@@ -70,7 +70,7 @@ export function Topbar({ onSidebarToggle, title, subtitle }: TopbarProps) {
               onClick={() => handleLanguageChange('vi')}
               className={cn(
                 "px-3 py-1 text-sm rounded-md font-medium",
-                language === 'vi' 
+                currentLanguage === 'vi' 
                   ? "bg-primary text-primary-foreground" 
                   : "text-muted-foreground hover:text-foreground"
               )}

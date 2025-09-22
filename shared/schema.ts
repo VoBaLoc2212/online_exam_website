@@ -36,7 +36,6 @@ export const questions = pgTable("questions", {
   correctAnswer: text("correct_answer").notNull(),
   explanation: text("explanation"),
   difficulty: difficultyEnum("difficulty").notNull(),
-  points: integer("points").default(1).notNull(),
   orderIndex: integer("order_index").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -85,6 +84,18 @@ export const results = pgTable("results", {
   completedAt: timestamp("completed_at").defaultNow().notNull(),
 });
 
+export const practiceResults = pgTable("practice_results", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  questionBankId: varchar("question_bank_id").notNull().references(() => questionBanks.id),
+  correctAnswers: integer("correct_answers").notNull(),
+  totalQuestions: integer("total_questions").notNull(),
+  score: integer("score").notNull(), // Score out of 10
+  timeSpent: integer("time_spent").notNull(), // in seconds
+  answers: jsonb("answers").notNull(), // Question ID to answer mapping
+  completedAt: timestamp("completed_at").defaultNow().notNull(),
+});
+
 // Session store table for connect-pg-simple
 export const userSessions = pgTable("user_sessions", {
   sid: varchar("sid").primaryKey(),
@@ -98,6 +109,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   tests: many(tests),
   testSessions: many(testSessions),
   results: many(results),
+  practiceResults: many(practiceResults),
 }));
 
 export const questionBanksRelations = relations(questionBanks, ({ one, many }) => ({
@@ -107,6 +119,7 @@ export const questionBanksRelations = relations(questionBanks, ({ one, many }) =
   }),
   questions: many(questions),
   tests: many(tests),
+  practiceResults: many(practiceResults),
 }));
 
 export const questionsRelations = relations(questions, ({ one }) => ({
@@ -156,6 +169,17 @@ export const resultsRelations = relations(results, ({ one }) => ({
   }),
 }));
 
+export const practiceResultsRelations = relations(practiceResults, ({ one }) => ({
+  user: one(users, {
+    fields: [practiceResults.userId],
+    references: [users.id],
+  }),
+  questionBank: one(questionBanks, {
+    fields: [practiceResults.questionBankId],
+    references: [questionBanks.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -187,6 +211,11 @@ export const insertResultSchema = createInsertSchema(results).omit({
   completedAt: true,
 });
 
+export const insertPracticeResultSchema = createInsertSchema(practiceResults).omit({
+  id: true,
+  completedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -200,3 +229,5 @@ export type TestSession = typeof testSessions.$inferSelect;
 export type InsertTestSession = z.infer<typeof insertTestSessionSchema>;
 export type Result = typeof results.$inferSelect;
 export type InsertResult = z.infer<typeof insertResultSchema>;
+export type PracticeResult = typeof practiceResults.$inferSelect;
+export type InsertPracticeResult = z.infer<typeof insertPracticeResultSchema>;

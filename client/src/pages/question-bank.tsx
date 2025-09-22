@@ -40,7 +40,7 @@ import {
 
 // ...interfaces and other code remain unchanged...
 
-export default function QuestionBankPage() {
+export default function QuestionBank() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -81,7 +81,7 @@ export default function QuestionBankPage() {
       setIsCreateModalOpen(false);
       reset();
       queryClient.invalidateQueries({ queryKey: ["questionBanks"] });
-      // Chuyển hướng sang trang tạo câu hỏi với questionBankId vừa tạo
+      // Redirect to question creation page with the newly created questionBankId
       setLocation(`/question-bank/${data.id}/questions`);
     },
     onError: () => {
@@ -95,7 +95,7 @@ export default function QuestionBankPage() {
     const res = await apiRequest("DELETE", `/api/question-banks/${id}`);
     const data = await res.json();
     if (!data.message) {
-      throw new Error("No response received from server");
+      throw new Error(t('noResponseFromServer'));
     }
     return data;
   };
@@ -104,8 +104,8 @@ export default function QuestionBankPage() {
     mutationFn: deleteQuestionBank,
     onSuccess: (data) => {
       toast({ 
-        title: "Deleted Successfully", 
-        description: data.message || "Question bank and all related questions have been deleted"
+        title: t('deletedSuccessfully'), 
+        description: data.message || t('questionBankDeleted')
       });
       setBankToDelete(null);
       queryClient.invalidateQueries({ queryKey: ["questionBanks"] });
@@ -113,8 +113,8 @@ export default function QuestionBankPage() {
     onError: (error: any) => {
       console.error("Delete error:", error);
       toast({ 
-        title: "Error",
-        description: error?.message || "Could not delete question bank. Please try again later.",
+        title: t('error'),
+        description: error?.message || t('deleteErrorMessage'),
         variant: "destructive"
       });
       setBankToDelete(null);
@@ -173,7 +173,7 @@ export default function QuestionBankPage() {
         <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
           <span className="flex items-center">
             <FileText className="w-4 h-4 mr-1" />
-            {bank.questionCount || 0} questions
+            {bank.questionCount || 0} {t('questionsCount')}
           </span>
           <span className="text-xs">
             {new Date(bank.createdAt).toLocaleDateString()}
@@ -183,7 +183,7 @@ export default function QuestionBankPage() {
           <Link href={'/question-bank/' + bank.id + "/questions"} className="flex-1">
             <Button variant="outline" size="sm" className="w-full" data-testid={'view-bank-' + bank.id}>
               <Eye className="w-4 h-4 mr-2" />
-              Edit
+              {t('edit')}
             </Button>
           </Link>
           <Button
@@ -217,10 +217,10 @@ export default function QuestionBankPage() {
                   {deleteQuestionBankMutation.isPending ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Deleting...
+                      {t('deleting')}
                     </>
                   ) : (
-                    'Xóa'
+                    t('delete')
                   )}
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -233,14 +233,7 @@ export default function QuestionBankPage() {
 
   return (
     <div className="space-y-6" data-testid="question-bank-page">
-      {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">{t('questionBank')}</h1>
-          <p className="text-muted-foreground">
-            Manage your question collections and import new content
-          </p>
-        </div>
         <div className="flex space-x-2">
           <Button 
             onClick={() => setIsImportModalOpen(true)}
@@ -254,19 +247,19 @@ export default function QuestionBankPage() {
             <DialogTrigger asChild>
               <Button data-testid="button-create-question-bank">
                 <Plus className="w-4 h-4 mr-2" />
-                Create Question Bank
+                {t('createQuestionBank')}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Create New Question Bank</DialogTitle>
+                <DialogTitle>{t('createNewQuestionBank')}</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div>
-                  <Label htmlFor="name">Name</Label>
+                  <Label htmlFor="name">{t('questionBankName')}</Label>
                   <Input
                     id="name"
-                    {...register('name', { required: 'Name is required' })}
+                    {...register('name', { required: t('nameRequired') })}
                     data-testid="input-bank-name"
                   />
                   {errors.name && (
@@ -274,7 +267,7 @@ export default function QuestionBankPage() {
                   )}
                 </div>
                 <div>
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description">{t('questionBankDescription')}</Label>
                   <Textarea
                     id="description"
                     {...register('description')}
@@ -292,12 +285,12 @@ export default function QuestionBankPage() {
                       }}
                     >
                       <SelectTrigger data-testid="select-bank-test-type">
-                        <SelectValue placeholder="Select test type" />
+                        <SelectValue placeholder={t('selectTestType')} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="aptis">APTIS ESOL</SelectItem>
-                        <SelectItem value="vstep">VSTEP</SelectItem>
-                        <SelectItem value="custom">Custom</SelectItem>
+                        <SelectItem value="aptis">{t('aptisEsol')}</SelectItem>
+                        <SelectItem value="vstep">{t('vstep')}</SelectItem>
+                        <SelectItem value="custom">{t('custom')}</SelectItem>
                       </SelectContent>
                     </Select>
                     {errors.testType && (
@@ -305,7 +298,7 @@ export default function QuestionBankPage() {
                     )}
                   </div>
                   <div>
-                    <Label htmlFor="skillType">Skill</Label>
+                    <Label htmlFor="skillType">{t('skillCategory')}</Label>
                     <Select
                       value={watch('skillType') || ''}
                       onValueChange={async (value) => {
@@ -314,7 +307,7 @@ export default function QuestionBankPage() {
                       }}
                     >
                       <SelectTrigger data-testid="select-bank-skill-type">
-                        <SelectValue placeholder="Select skill" />
+                        <SelectValue placeholder={t('selectSkill')} />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="reading">{t('reading')}</SelectItem>
@@ -330,12 +323,12 @@ export default function QuestionBankPage() {
                     )}
                   </div>
                   <div>
-                    <Label htmlFor="examDuration">Thời gian làm bài (phút)</Label>
+                    <Label htmlFor="examDuration">{t('examDuration')}</Label>
                     <Input
                       id="examDuration"
                       type="number"
                       min={1}
-                      {...register('examDuration', { valueAsNumber: true, required: 'Thời gian làm bài là bắt buộc' })}
+                      {...register('examDuration', { valueAsNumber: true, required: t('examDurationRequired') })}
                       data-testid="input-exam-duration"
                     />
                     {errors.examDuration && (
@@ -372,7 +365,7 @@ export default function QuestionBankPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
-                  placeholder="Search question banks..."
+                  placeholder={t('searchQuestionBanks')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -386,10 +379,10 @@ export default function QuestionBankPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="aptis">APTIS</SelectItem>
-                  <SelectItem value="vstep">VSTEP</SelectItem>
-                  <SelectItem value="custom">Custom</SelectItem>
+                  <SelectItem value="all">{t('allTypes')}</SelectItem>
+                  <SelectItem value="aptis">{t('aptis')}</SelectItem>
+                  <SelectItem value="vstep">{t('vstep')}</SelectItem>
+                  <SelectItem value="custom">{t('custom')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -399,7 +392,7 @@ export default function QuestionBankPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Skills</SelectItem>
+                  <SelectItem value="all">{t('allSkills')}</SelectItem>
                   <SelectItem value="reading">{t('reading')}</SelectItem>
                   <SelectItem value="listening">{t('listening')}</SelectItem>
                   <SelectItem value="grammar">{t('grammar')}</SelectItem>
@@ -432,7 +425,7 @@ export default function QuestionBankPage() {
           <div className="col-span-full text-center py-12">
             <Database className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium text-foreground mb-2">
-              {questionBanks?.length === 0 ? 'No question banks yet' : 'No question banks match your filters'}
+              {questionBanks?.length === 0 ? t('noQuestionBanksYet') : t('noQuestionBanksMatch')}
             </h3>
             <p className="text-muted-foreground mb-4">
               {questionBanks?.length === 0

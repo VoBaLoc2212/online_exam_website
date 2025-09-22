@@ -151,6 +151,15 @@ questionBankRouter.get("/question-banks/:id/questions", requireAuth, async (req,
 
     // Return sorted questions by orderIndex
     const sortedQuestions = questions.sort((a, b) => a.orderIndex - b.orderIndex);
+    
+    // Debug logs
+    console.log("=== BACKEND DEBUG ===");
+    console.log("Question bank ID:", questionBank.id);
+    console.log("Total questions found:", sortedQuestions.length);
+    console.log("Questions preview:", sortedQuestions.map((q, i) => `${i+1}: ${q.content.substring(0, 50)}...`));
+    console.log("Question IDs:", sortedQuestions.map(q => q.id));
+    console.log("===================");
+    
     res.json(sortedQuestions);
   } catch (error) {
     res.status(500).json({ message: "Failed to get questions", error: String(error) });

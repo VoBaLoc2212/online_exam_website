@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/lib/i18n";
 
 interface QuestionForm {
   content: string;
@@ -20,7 +21,8 @@ interface QuestionForm {
   explanation: string;
 }
 
-export default function QuestionsPage() {
+export default function Questions() {
+  const { t } = useTranslation();
   const { questionbankId } = useParams();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -53,8 +55,8 @@ export default function QuestionsPage() {
       return await res.json();
     },
     enabled: !!questionbankId,
-    staleTime: 0, // Luôn fetch lại khi gọi refetch
-    refetchOnWindowFocus: true, // Tự động fetch khi tab được focus
+    staleTime: 0, // Always refetch when calling refetch
+    refetchOnWindowFocus: true, // Auto fetch when tab is focused
   });
 
   // Create question mutation
@@ -100,13 +102,13 @@ export default function QuestionsPage() {
       
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.message || 'Lỗi khi lưu câu hỏi');
+        throw new Error(error.message || 'Error saving question');
       }
       
       return await res.json();
     },
     onSuccess: async () => {
-      toast({ title: "Questions saved successfully" });
+      toast({ title: t('questionsSavedSuccessfully') });
       
       // Get the updated question list
       await refetch();
@@ -126,7 +128,7 @@ export default function QuestionsPage() {
     },
     onError: (error: Error) => {
       toast({ 
-        title: "Lỗi khi lưu các câu hỏi", 
+        title: "Error saving questions", 
         description: error.message,
         variant: "destructive" 
       });
@@ -152,7 +154,7 @@ export default function QuestionsPage() {
   };
 
   const handleSave = () => {
-    // Kiểm tra form trước khi gửi
+    // Check form before submitting
     const hasEmptyFields = questionForms.some(form => 
       !form.content || !form.optionA || !form.optionB || 
       !form.optionC || !form.optionD || !form.answer
@@ -181,7 +183,7 @@ export default function QuestionsPage() {
       return;
     }
 
-    // Kiểm tra và chuẩn bị dữ liệu trước khi gửi
+    // Check and prepare data before sending
     const questions = questionForms.map(form => {
       const trimmedContent = form.content.trim();
       const trimmedOptions = [
@@ -193,7 +195,7 @@ export default function QuestionsPage() {
       const upperAnswer = form.answer.toUpperCase();
       const trimmedExplanation = form.explanation?.trim();
 
-      // Validate dữ liệu trước khi trả về
+      // Validate data before returning
       if (!trimmedContent) {
         throw new Error('Question content cannot be empty');
       }
@@ -220,13 +222,13 @@ export default function QuestionsPage() {
           <Card key={index}>
             <CardHeader>
               <CardTitle>
-                Câu {questions.length + index + 1}
+                {t('question')} {questions.length + index + 1}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor={`content-${index}`}>Nội dung câu hỏi</Label>
+                  <Label htmlFor={`content-${index}`}>{t('questionContent')}</Label>
                   <Textarea
                     id={`content-${index}`}
                     value={form.content}
@@ -235,7 +237,7 @@ export default function QuestionsPage() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor={`optionA-${index}`}>Đáp án A</Label>
+                    <Label htmlFor={`optionA-${index}`}>{t('optionA')}</Label>
                     <Input
                       id={`optionA-${index}`}
                       value={form.optionA}
@@ -243,7 +245,7 @@ export default function QuestionsPage() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor={`optionB-${index}`}>Đáp án B</Label>
+                    <Label htmlFor={`optionB-${index}`}>Option B</Label>
                     <Input
                       id={`optionB-${index}`}
                       value={form.optionB}
@@ -251,7 +253,7 @@ export default function QuestionsPage() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor={`optionC-${index}`}>Đáp án C</Label>
+                    <Label htmlFor={`optionC-${index}`}>Option C</Label>
                     <Input
                       id={`optionC-${index}`}
                       value={form.optionC}
@@ -259,7 +261,7 @@ export default function QuestionsPage() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor={`optionD-${index}`}>Đáp án D</Label>
+                    <Label htmlFor={`optionD-${index}`}>Option D</Label>
                     <Input
                       id={`optionD-${index}`}
                       value={form.optionD}
@@ -268,7 +270,7 @@ export default function QuestionsPage() {
                   </div>
                 </div>
                 <div>
-                  <Label>Đáp án đúng</Label>
+                  <Label>Correct Answer</Label>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
                     {['A', 'B', 'C', 'D'].map((option) => (
                       <div
@@ -286,7 +288,7 @@ export default function QuestionsPage() {
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor={`explanation-${index}`}>Giải thích (tuỳ chọn)</Label>
+                  <Label htmlFor={`explanation-${index}`}>Explanation (optional)</Label>
                   <Textarea
                     id={`explanation-${index}`}
                     value={form.explanation}
@@ -314,17 +316,17 @@ export default function QuestionsPage() {
           </Button>
         </div>
 
-        {/* Hiển thị danh sách câu hỏi đã có */}
+        {/* Display existing questions list */}
         <Card className="mt-8">
           <CardHeader>
             <CardTitle>Existing Questions</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="text-center py-4">Đang tải danh sách câu hỏi...</div>
+              <div className="text-center py-4">Loading questions...</div>
             ) : questions.length === 0 ? (
               <div className="text-center py-4 text-muted-foreground">
-                Chưa có câu hỏi nào trong ngân hàng
+                No questions in the question bank yet
               </div>
             ) : (
               <div className="space-y-6">
@@ -358,7 +360,7 @@ export default function QuestionsPage() {
                     </div>
                     {q.explanation && (
                       <div className="mt-4 pt-4 border-t text-sm text-muted-foreground">
-                        <span className="font-medium text-foreground">Giải thích: </span>
+                        <span className="font-medium text-foreground">Explanation: </span>
                         {q.explanation}
                       </div>
                     )}

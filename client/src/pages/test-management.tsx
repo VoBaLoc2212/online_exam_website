@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,11 +34,12 @@ interface Test {
   name: string;
   description: string;
   testType: 'aptis' | 'vstep' | 'custom';
+  questionBankId: string;
   timeLimit: number;
   totalQuestions: number;
   isActive: boolean;
   createdAt: string;
-  questionBank: {
+  questionBank?: {
     id: string;
     name: string;
     skillType: string;
@@ -55,7 +57,7 @@ interface QuestionBank {
 interface TestForm {
   name: string;
   description: string;
-  testType: string;
+  testType: 'aptis' | 'vstep' | 'custom';
   questionBankId: string;
   timeLimit: number;
   totalQuestions: number;
@@ -67,11 +69,12 @@ export default function TestManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [deleteTestId, setDeleteTestId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTestType, setFilterTestType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
-  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<TestForm>({
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors }, control } = useForm<TestForm>({
     defaultValues: {
       isActive: true,
       timeLimit: 60,
@@ -96,13 +99,13 @@ export default function TestManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tests'] });
-      toast({ title: "Test created successfully" });
+      toast({ title: t('testCreatedSuccessfully') });
       setIsCreateModalOpen(false);
       reset();
     },
     onError: () => {
       toast({ 
-        title: "Failed to create test", 
+        title: t('failedToCreateTest'), 
         variant: "destructive" 
       });
     }
@@ -115,11 +118,11 @@ export default function TestManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tests'] });
-      toast({ title: "Test updated successfully" });
+      toast({ title: t('testUpdatedSuccessfully') });
     },
     onError: () => {
       toast({ 
-        title: "Failed to update test", 
+        title: t('failedToUpdateTest'), 
         variant: "destructive" 
       });
     }
@@ -131,13 +134,15 @@ export default function TestManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tests'] });
-      toast({ title: "Test deleted successfully" });
+      toast({ title: t('testDeletedSuccessfully') });
+      setDeleteTestId(null);
     },
     onError: () => {
       toast({ 
-        title: "Failed to delete test", 
+        title: t('failedToDeleteTest'), 
         variant: "destructive" 
       });
+      setDeleteTestId(null);
     }
   });
 
@@ -147,7 +152,7 @@ export default function TestManagement() {
         name: `${test.name} (Copy)`,
         description: test.description,
         testType: test.testType,
-        questionBankId: test.questionBank.id,
+        questionBankId: test.questionBank?.id || test.questionBankId,
         timeLimit: test.timeLimit,
         totalQuestions: test.totalQuestions,
         isActive: false
@@ -157,11 +162,11 @@ export default function TestManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tests'] });
-      toast({ title: "Test duplicated successfully" });
+      toast({ title: t('testDuplicatedSuccessfully') });
     },
     onError: () => {
       toast({ 
-        title: "Failed to duplicate test", 
+        title: t('failedToDuplicateTest'), 
         variant: "destructive" 
       });
     }
@@ -181,6 +186,30 @@ export default function TestManagement() {
   const selectedQuestionBank = questionBanks?.find(bank => bank.id === selectedQuestionBankId);
 
   const onSubmit = (data: TestForm) => {
+    console.log('Form data being submitted:', data);
+    
+    // Validate required fields
+    if (!data.name || !data.testType || !data.questionBankId) {
+      toast({ 
+        title: t('error'), 
+        description: t('fillAllRequiredFields'),
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    // Validate numeric fields (should be numbers now due to valueAsNumber: true)
+    if (typeof data.timeLimit !== 'number' || typeof data.totalQuestions !== 'number' || 
+        data.timeLimit <= 0 || data.totalQuestions <= 0 || 
+        isNaN(data.timeLimit) || isNaN(data.totalQuestions)) {
+      toast({ 
+        title: t('error'), 
+        description: t('invalidNumbers'),
+        variant: "destructive" 
+      });
+      return;
+    }
+    
     createTestMutation.mutate(data);
   };
 
@@ -189,6 +218,12 @@ export default function TestManagement() {
       id: test.id,
       updates: { isActive: !test.isActive }
     });
+  };
+
+  const handleDeleteTest = (testId: string) => {
+    if (deleteTestId === testId) {
+      deleteTestMutation.mutate(testId);
+    }
   };
 
   const getTestTypeColor = (type: string) => {
@@ -206,30 +241,27 @@ export default function TestManagement() {
     <div className="space-y-6" data-testid="test-management-page">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">{t('testManagement')}</h1>
-          <p className="text-muted-foreground">
-            Create and manage your test configurations
-          </p>
-        </div>
         <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
           <DialogTrigger asChild>
             <Button data-testid="button-create-test">
               <Plus className="w-4 h-4 mr-2" />
-              Create Test
+              {t('createTest')}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Create New Test</DialogTitle>
+              <DialogDescription>
+                Configure a new test with questions from your question banks.
+              </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
-                  <Label htmlFor="name">Test Name</Label>
+                  <Label htmlFor="name">{t('testName')}</Label>
                   <Input
                     id="name"
-                    {...register('name', { required: 'Name is required' })}
+                    {...register('name', { required: t('nameRequired') })}
                     data-testid="input-test-name"
                   />
                   {errors.name && (
@@ -238,7 +270,7 @@ export default function TestManagement() {
                 </div>
                 
                 <div className="col-span-2">
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description">{t('testDescription')}</Label>
                   <Textarea
                     id="description"
                     {...register('description')}
@@ -249,15 +281,15 @@ export default function TestManagement() {
                 <div>
                   <Label htmlFor="testType">{t('testType')}</Label>
                   <Select 
-                    onValueChange={(value) => setValue('testType', value)}
+                    onValueChange={(value) => setValue('testType', value as 'aptis' | 'vstep' | 'custom')}
                   >
                     <SelectTrigger data-testid="select-test-type">
-                      <SelectValue placeholder="Select test type" />
+                      <SelectValue placeholder={t('selectTestType')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="aptis">APTIS ESOL</SelectItem>
-                      <SelectItem value="vstep">VSTEP</SelectItem>
-                      <SelectItem value="custom">Custom</SelectItem>
+                      <SelectItem value="aptis">{t('aptisEsol')}</SelectItem>
+                      <SelectItem value="vstep">{t('vstep')}</SelectItem>
+                      <SelectItem value="custom">{t('custom')}</SelectItem>
                     </SelectContent>
                   </Select>
                   {errors.testType && (
@@ -266,12 +298,14 @@ export default function TestManagement() {
                 </div>
                 
                 <div>
-                  <Label htmlFor="questionBankId">Question Bank</Label>
+                  <Label htmlFor="questionBankId">{t('questionBank')}</Label>
                   <Select 
-                    onValueChange={(value) => setValue('questionBankId', value)}
+                    onValueChange={(value) => {
+                      setValue('questionBankId', value);
+                    }}
                   >
                     <SelectTrigger data-testid="select-question-bank">
-                      <SelectValue placeholder="Select question bank" />
+                      <SelectValue placeholder={t('selectQuestionBank')} />
                     </SelectTrigger>
                     <SelectContent>
                       {questionBanks?.map((bank) => (
@@ -287,14 +321,15 @@ export default function TestManagement() {
                 </div>
                 
                 <div>
-                  <Label htmlFor="timeLimit">Time Limit (minutes)</Label>
+                  <Label htmlFor="timeLimit">{t('timeLimitMinutes')}</Label>
                   <Input
                     id="timeLimit"
                     type="number"
                     min="1"
                     {...register('timeLimit', { 
-                      required: 'Time limit is required',
-                      min: { value: 1, message: 'Time limit must be at least 1 minute' }
+                      required: t('timeLimitRequired'),
+                      min: { value: 1, message: 'Time limit must be at least 1 minute' },
+                      valueAsNumber: true
                     })}
                     data-testid="input-time-limit"
                   />
@@ -304,15 +339,16 @@ export default function TestManagement() {
                 </div>
                 
                 <div>
-                  <Label htmlFor="totalQuestions">Total Questions</Label>
+                  <Label htmlFor="totalQuestions">{t('totalQuestions')}</Label>
                   <Input
                     id="totalQuestions"
                     type="number"
                     min="1"
                     max={selectedQuestionBank?.questions?.length || 100}
                     {...register('totalQuestions', { 
-                      required: 'Total questions is required',
-                      min: { value: 1, message: 'Must have at least 1 question' }
+                      required: t('totalQuestionsRequired'),
+                      min: { value: 1, message: 'Must have at least 1 question' },
+                      valueAsNumber: true
                     })}
                     data-testid="input-total-questions"
                   />
@@ -333,7 +369,7 @@ export default function TestManagement() {
                     onCheckedChange={(checked) => setValue('isActive', checked)}
                     data-testid="switch-test-active"
                   />
-                  <Label htmlFor="isActive">Make test active immediately</Label>
+                  <Label htmlFor="isActive">{t('makeTestActiveImmediately')}</Label>
                 </div>
               </div>
               
@@ -366,7 +402,7 @@ export default function TestManagement() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
-                  placeholder="Search tests..."
+                  placeholder={t('searchTests')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -380,10 +416,10 @@ export default function TestManagement() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="aptis">APTIS</SelectItem>
-                  <SelectItem value="vstep">VSTEP</SelectItem>
-                  <SelectItem value="custom">Custom</SelectItem>
+                  <SelectItem value="all">{t('allTypes')}</SelectItem>
+                  <SelectItem value="aptis">{t('aptis')}</SelectItem>
+                  <SelectItem value="vstep">{t('vstep')}</SelectItem>
+                  <SelectItem value="custom">{t('custom')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -393,9 +429,9 @@ export default function TestManagement() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="all">{t('allStatus')}</SelectItem>
+                  <SelectItem value="active">{t('active')}</SelectItem>
+                  <SelectItem value="inactive">{t('inactive')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -422,18 +458,18 @@ export default function TestManagement() {
           <div className="col-span-full text-center py-12">
             <Settings className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium text-foreground mb-2">
-              {tests?.length === 0 ? 'No tests yet' : 'No tests match your filters'}
+              {tests?.length === 0 ? t('noTests') : t('noTestsMatch')}
             </h3>
             <p className="text-muted-foreground mb-4">
               {tests?.length === 0 
-                ? 'Create your first test to get started'
-                : 'Try adjusting your search terms or filters'
+                ? t('createFirstTest')
+                : t('adjustFilters')
               }
             </p>
             {tests?.length === 0 && (
               <Button onClick={() => setIsCreateModalOpen(true)}>
                 <Plus className="w-4 h-4 mr-2" />
-                Create Test
+                {t('createTest')}
               </Button>
             )}
           </div>
@@ -449,7 +485,7 @@ export default function TestManagement() {
                         {test.testType.toUpperCase()}
                       </Badge>
                       <Badge variant={test.isActive ? "default" : "secondary"}>
-                        {test.isActive ? 'Active' : 'Inactive'}
+                        {test.isActive ? t('active') : t('inactive')}
                       </Badge>
                     </div>
                   </div>
@@ -466,20 +502,20 @@ export default function TestManagement() {
                   <div className="flex items-center justify-between">
                     <span className="flex items-center">
                       <FileText className="w-4 h-4 mr-1" />
-                      Questions
+                      {t('totalQuestions')}
                     </span>
                     <span className="font-medium">{test.totalQuestions}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="flex items-center">
                       <Clock className="w-4 h-4 mr-1" />
-                      Time Limit
+                      {t('timeLimit')}
                     </span>
                     <span className="font-medium">{test.timeLimit} min</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span>Question Bank</span>
-                    <span className="font-medium">{test.questionBank.name}</span>
+                    <span>{t('questionBank')}</span>
+                    <span className="font-medium">{test.questionBank?.name || 'N/A'}</span>
                   </div>
                 </div>
 
@@ -487,7 +523,7 @@ export default function TestManagement() {
                   <Link href={`/mock-test/${test.id}`} className="flex-1">
                     <Button variant="outline" size="sm" className="w-full" data-testid={`view-test-${test.id}`}>
                       <Eye className="w-4 h-4 mr-2" />
-                      View
+                      {t('view')}
                     </Button>
                   </Link>
                   <Button 
@@ -509,15 +545,40 @@ export default function TestManagement() {
                   <Button variant="outline" size="sm" data-testid={`edit-test-${test.id}`}>
                     <Edit className="w-4 h-4" />
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => deleteTestMutation.mutate(test.id)}
-                    className="text-destructive hover:text-destructive"
-                    data-testid={`delete-test-${test.id}`}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                        data-testid={`delete-test-${test.id}`}
+                        onClick={() => setDeleteTestId(test.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>{t('deleteConfirmation')}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {t('deleteTestMessage', { name: test.name })}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setDeleteTestId(null)}>
+                          {t('cancel')}
+                        </AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={() => handleDeleteTest(test.id)}
+                          disabled={deleteTestMutation.isPending}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          {deleteTestMutation.isPending ? t('deleting') : t('delete')}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </CardContent>
             </Card>

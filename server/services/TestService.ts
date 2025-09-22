@@ -1,19 +1,43 @@
 import { 
-  tests, testSessions, results,
+  tests, testSessions, results, questionBanks,
   type Test, type InsertTest, type TestSession, type InsertTestSession, 
   type Result, type InsertResult
 } from "../../shared/schema";
 import { db } from "../db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { ITestService, ITestSessionService, IResultService } from "../implements/ITestService";
 
 export class TestService implements ITestService {
   async getTests(userId: string): Promise<Test[]> {
-    return await db
-      .select()
-      .from(tests)
-      .where(eq(tests.createdBy, userId))
-      .orderBy(desc(tests.createdAt));
+    return await db.query.tests.findMany({
+      where: eq(tests.createdBy, userId),
+      orderBy: desc(tests.createdAt),
+      with: {
+        questionBank: {
+          columns: {
+            id: true,
+            name: true,
+            skillType: true,
+          }
+        }
+      }
+    });
+  }
+
+  async getAllTests(): Promise<Test[]> {
+    return await db.query.tests.findMany({
+      where: eq(tests.isActive, true), // Chỉ lấy tests đang active
+      orderBy: desc(tests.createdAt),
+      with: {
+        questionBank: {
+          columns: {
+            id: true,
+            name: true,
+            skillType: true,
+          }
+        }
+      }
+    });
   }
 
   async getTest(id: string): Promise<Test | undefined> {
@@ -44,6 +68,56 @@ export class TestService implements ITestService {
       .where(eq(tests.id, id))
       .returning();
     return result.length > 0;
+  }
+
+  async hasUserCompletedTest(userId: string, testId: string): Promise<boolean> {
+    const existingResults = await db
+      .select()
+      .from(results)
+      .where(and(
+        eq(results.userId, userId),
+        eq(results.testId, testId)
+      ));
+    return existingResults.length > 0;
+  }
+
+  async getTestHistory(userId: string) {
+    // Get mock test results
+    const mockTestResults = await db.query.results.findMany({
+      where: eq(results.userId, userId),
+      orderBy: desc(results.completedAt),
+      with: {
+        test: {
+          columns: {
+            id: true,
+            name: true,
+            testType: true,
+          }
+        }
+      }
+    });
+
+    // Transform mock test results
+    const formattedMockTests = mockTestResults.map(result => ({
+      id: result.id,
+      type: 'mock-test' as const,
+      name: result.test.name,
+      score: result.score,
+      totalScore: result.totalScore,
+      percentage: result.percentage,
+      timeSpent: result.timeSpent,
+      completedAt: result.completedAt.toISOString(),
+      testType: result.test.testType,
+    }));
+
+    return {
+      practiceResults: [], // Will be populated later when we integrate with practice results
+      mockTestResults: formattedMockTests,
+      totalCount: formattedMockTests.length,
+      averageScore: formattedMockTests.length > 0 
+        ? formattedMockTests.reduce((sum, result) => sum + result.percentage, 0) / formattedMockTests.length 
+        : 0
+    };
   }
 }
 
@@ -89,19 +163,61 @@ export class TestSessionService implements ITestSessionService {
       .returning();
     return updated || undefined;
   }
+
+  async terminateTestSession(id: string, reason: string): Promise<TestSession | undefined> {
+    const [updated] = await db
+      .update(testSessions)
+      .set({
+        isCompleted: true,
+        endTime: new Date(),
+        suspiciousActivity: [{ type: 'termination', reason, timestamp: new Date() }]
+      })
+      .where(eq(testSessions.id, id))
+      .returning();
+    return updated || undefined;
+  }
 }
 
 export class ResultService implements IResultService {
   async getResults(userId: string): Promise<Result[]> {
-    return await db
-      .select()
-      .from(results)
-      .where(eq(results.userId, userId))
-      .orderBy(desc(results.completedAt));
+    return await db.query.results.findMany({
+      where: eq(results.userId, userId),
+      orderBy: desc(results.completedAt),
+      with: {
+        test: {
+          columns: {
+            id: true,
+            name: true,
+            testType: true,
+          }
+        }
+      }
+    });
   }
 
   async getResult(id: string): Promise<Result | undefined> {
-    const [result] = await db.select().from(results).where(eq(results.id, id));
+    const result = await db.query.results.findFirst({
+      where: eq(results.id, id),
+      with: {
+        test: {
+          columns: {
+            id: true,
+            name: true,
+            testType: true,
+            timeLimit: true,
+            totalQuestions: true,
+          }
+        },
+        session: {
+          columns: {
+            id: true,
+            startTime: true,
+            endTime: true,
+            isCompleted: true,
+          }
+        }
+      }
+    });
     return result || undefined;
   }
 

@@ -29,12 +29,12 @@ export default function Register() {
       return response.json();
     },
     onSuccess: async (data) => {
-      toast({ title: "Registration successful", description: `Welcome, ${data.user.fullName}!` });
+      toast({ title: t('registrationSuccessful'), description: `${t('welcome')}, ${data.user.fullName}!` });
       // Auto login after register
       await loginMutation.mutateAsync({ username: formData.username, password: formData.password });
     },
     onError: (error: any) => {
-      toast({ title: "Registration failed", description: error.message, variant: "destructive" });
+      toast({ title: t('registrationFailed'), description: error.message, variant: "destructive" });
       setLoading(false);
     }
   });
@@ -75,7 +75,7 @@ export default function Register() {
     <div className="flex justify-center items-center min-h-screen">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>{t('Register')}</CardTitle>
+          <CardTitle>{t('register')}</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -96,7 +96,7 @@ export default function Register() {
               <Input id="fullName" value={formData.fullName} onChange={e => handleInputChange('fullName', e.target.value)} required />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? t('Registering...') : t('Register')}
+              {loading ? t('registering') : t('register')}
             </Button>
           </form>
         </CardContent>

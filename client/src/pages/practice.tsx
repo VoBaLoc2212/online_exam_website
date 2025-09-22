@@ -104,13 +104,7 @@ export default function Practice() {
 
   return (
     <div className="space-y-6" data-testid="practice-page">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground mb-2">Practice Mode</h1>
-        <p className="text-muted-foreground">
-          Practice individual skills to improve your performance
-        </p>
-      </div>
+
 
       {/* Filters */}
       <Card>
@@ -125,24 +119,24 @@ export default function Practice() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="aptis">APTIS ESOL</SelectItem>
-                  <SelectItem value="vstep">VSTEP</SelectItem>
-                  <SelectItem value="custom">Custom</SelectItem>
+                  <SelectItem value="all">{t('allTypes')}</SelectItem>
+                  <SelectItem value="aptis">{t('aptisEsol')}</SelectItem>
+                  <SelectItem value="vstep">{t('vstep')}</SelectItem>
+                  <SelectItem value="custom">{t('custom')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="flex-1 min-w-[200px]">
               <label className="block text-sm font-medium text-foreground mb-2">
-                Skill
+                {t('selectSkill')}
               </label>
               <Select value={selectedSkill} onValueChange={setSelectedSkill}>
                 <SelectTrigger data-testid="filter-skill">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Skills</SelectItem>
+                  <SelectItem value="all">{t('allSkills')}</SelectItem>
                   <SelectItem value="reading">{t('reading')}</SelectItem>
                   <SelectItem value="listening">{t('listening')}</SelectItem>
                   <SelectItem value="grammar">{t('grammar')}</SelectItem>
@@ -157,7 +151,7 @@ export default function Practice() {
               <Link href="/question-bank">
                 <Button variant="outline">
                   <Target className="w-4 h-4 mr-2" />
-                  Manage Question Banks
+                  {t('manageQuestionBanks')}
                 </Button>
               </Link>
             </div>
@@ -242,11 +236,11 @@ export default function Practice() {
                   <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
                     <span className="flex items-center">
                       <FileText className="w-4 h-4 mr-1" />
-                      {bank.questionCount} questions
+                      {bank.questionCount} {t('questions')}
                     </span>
                     <span className="flex items-center">
                       <Clock className="w-4 h-4 mr-1" />
-                      {bank.examDuration} minutes
+                      {bank.examDuration} {t('minutes')}
                     </span>
                   </div>
 
@@ -254,7 +248,7 @@ export default function Practice() {
                     <Link href={`/practice/${bank.id}/session`} className="flex-1">
                       <Button className="w-full" data-testid={`start-practice-${bank.id}`}>
                         <Play className="w-4 h-4 mr-2" />
-                        Practice Now
+                        {t('practiceNow')}
                       </Button>
                     </Link>
                   </div>
@@ -288,7 +282,7 @@ export default function Practice() {
                   <BookOpen className="w-6 h-6 text-primary" />
                   <div>
                     <h4 className="font-medium text-foreground">APTIS Reading Practice</h4>
-                    <p className="text-sm text-muted-foreground">Mixed difficulty levels</p>
+                    <p className="text-sm text-muted-foreground">{t('mixedDifficultyLevels')}</p>
                   </div>
                 </div>
               </div>

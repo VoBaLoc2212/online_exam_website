@@ -53,29 +53,29 @@ export default function Dashboard() {
 
   const quickActions = [
     {
-      title: 'Start APTIS Practice',
-      subtitle: 'Grammar, vocabulary & skills',
+      title: t('startAptis'),
+      subtitle: t('grammarVocabSkills'),
       icon: Play,
       href: '/practice?type=aptis',
       color: 'text-primary'
     },
     {
-      title: 'VSTEP Mock Test',
-      subtitle: 'Full 4 skills assessment',
+      title: t('vstepMockTest'),
+      subtitle: t('fullSkillsAssessment'),
       icon: GraduationCap,
       href: '/mock-test?type=vstep',
       color: 'text-green-600'
     },
     {
-      title: 'Import Questions',
-      subtitle: 'Word/Excel formats',
+      title: t('importQuestions'),
+      subtitle: t('wordExcelFormats'),
       icon: Upload,
       href: '/question-bank?action=import',
       color: 'text-amber-600'
     },
     {
-      title: 'View Progress',
-      subtitle: 'Detailed analytics',
+      title: t('viewProgress'),
+      subtitle: t('detailedAnalytics'),
       icon: BarChart3,
       href: '/results',
       color: 'text-purple-600'
@@ -106,7 +106,7 @@ export default function Dashboard() {
             <div className="mt-4 flex items-center">
               <TrendingUp className="w-4 h-4 text-green-600 mr-1" />
               <span className="text-sm text-green-600 font-medium">+12%</span>
-              <span className="text-sm text-muted-foreground ml-2">vs last week</span>
+              <span className="text-sm text-muted-foreground ml-2">{t('vsLastWeek')}</span>
             </div>
           </CardContent>
         </Card>
@@ -128,7 +128,7 @@ export default function Dashboard() {
             </div>
             <div className="mt-4 flex items-center">
               <span className="text-sm text-green-600 font-medium">+3</span>
-              <span className="text-sm text-muted-foreground ml-2">completed</span>
+              <span className="text-sm text-muted-foreground ml-2">{t('completed')}</span>
             </div>
           </CardContent>
         </Card>
@@ -151,7 +151,7 @@ export default function Dashboard() {
             <div className="mt-4 flex items-center">
               <TrendingUp className="w-4 h-4 text-green-600 mr-1" />
               <span className="text-sm text-green-600 font-medium">+5.2%</span>
-              <span className="text-sm text-muted-foreground ml-2">improvement</span>
+              <span className="text-sm text-muted-foreground ml-2">{t('improvement')}</span>
             </div>
           </CardContent>
         </Card>
@@ -164,7 +164,7 @@ export default function Dashboard() {
                   {t('studyStreak')}
                 </p>
                 <p className="text-2xl font-bold text-foreground" data-testid="stat-study-streak">
-                  {stats?.studyStreak || 0} <span className="text-base">days</span>
+                  {stats?.studyStreak || 0} <span className="text-base">{t('days')}</span>
                 </p>
               </div>
               <div className="w-12 h-12 bg-purple-500/10 rounded-lg flex items-center justify-center">
@@ -172,7 +172,7 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="mt-4">
-              <span className="text-sm text-muted-foreground">Keep it up!</span>
+              <span className="text-sm text-muted-foreground">{t('keepItUp')}</span>
             </div>
           </CardContent>
         </Card>
@@ -212,7 +212,7 @@ export default function Dashboard() {
               <h3 className="text-lg font-semibold text-foreground">{t('recentTests')}</h3>
               <Link href="/results">
                 <Button variant="ghost" size="sm">
-                  View All →
+                  {t('viewAllArrow')}
                 </Button>
               </Link>
             </div>
@@ -227,7 +227,7 @@ export default function Dashboard() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground">{test.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {new Date(test.completedAt).toLocaleDateString()} • {test.score}% score
+                      {new Date(test.completedAt).toLocaleDateString()} {test.score}% {t('score').toLowerCase()}
                     </p>
                   </div>
                   <Badge variant="secondary">
@@ -239,7 +239,7 @@ export default function Dashboard() {
                   <p>No recent tests found</p>
                   <Link href="/practice">
                     <Button variant="outline" className="mt-2" size="sm">
-                      Start practicing
+                      {t('startPracticingNow')}
                     </Button>
                   </Link>
                 </div>
@@ -275,9 +275,9 @@ export default function Dashboard() {
               <div className="flex items-start space-x-3">
                 <Lightbulb className="w-5 h-5 text-amber-600 mt-1" />
                 <div>
-                  <h4 className="text-sm font-medium text-foreground mb-1">Recommendation</h4>
+                  <h4 className="text-sm font-medium text-foreground mb-1">{t('recommendation')}</h4>
                   <p className="text-xs text-muted-foreground">
-                    Focus on vocabulary practice to improve overall performance.
+                    {t('focusVocabularyPractice')}
                   </p>
                 </div>
               </div>

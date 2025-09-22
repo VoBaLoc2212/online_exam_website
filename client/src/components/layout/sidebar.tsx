@@ -13,7 +13,8 @@ import {
   GraduationCap,
   X,
   Shield,
-  LogOut
+  LogOut,
+  History
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -36,6 +37,7 @@ const navigationItems = [
   { href: "/practice", icon: Dumbbell, key: "practice" },
   { href: "/mock-test", icon: ClipboardCheck, key: "mockTests" },
   { href: "/results", icon: BarChart3, key: "results" },
+  { href: "/test-history", icon: History, key: "testHistory" },
   { href: "/question-bank", icon: Database, key: "questionBank" },
   { href: "/test-management", icon: Settings, key: "testManagement" },
 ];
@@ -72,7 +74,7 @@ export function Sidebar({ isOpen, onClose, user, antiCheatStats, isTestMode }: S
               </div>
               <div>
                 <h1 className="text-lg font-bold text-foreground">EduTest Pro</h1>
-                <p className="text-xs text-muted-foreground">Language Testing Platform</p>
+                <p className="text-xs text-muted-foreground">{t('languageTestingPlatform')}</p>
               </div>
             </div>
             <Button

@@ -2,10 +2,12 @@ import { Router } from "express";
 import multer from "multer";
 import XLSX from "xlsx";
 import mammoth from "mammoth";
-import { insertQuestionSchema } from "../../shared/schema";
+import { insertQuestionSchema, questions } from "../../shared/schema";
 import { QuestionService } from "../services/QuestionService";
 import { QuestionBankService } from "../services/QuestionBankService";
 import { requireAuth, AuthenticatedRequest } from "./userRoutes";
+import { db } from "../db";
+import { eq } from "drizzle-orm";
 
 const questionRouter = Router();
 const questionService = new QuestionService();
@@ -205,6 +207,76 @@ questionRouter.post("/import", requireAuth, upload.single("file"), async (req, r
     res
       .status(400)
       .json({ message: "Import failed", error: error.message });
+  }
+});
+
+// Debug endpoint to recreate questions for a question bank
+questionRouter.post("/debug/recreate/:questionBankId", requireAuth, async (req, res) => {
+  try {
+    const { questionBankId } = req.params;
+    
+    // Delete all existing questions for this question bank
+    await db.delete(questions).where(eq(questions.questionBankId, questionBankId));
+    
+    // Sample questions data
+    const sampleQuestions = [
+      {
+        content: "Vocabulary Question 1: Which word best completes the sentence: 'The professor's lecture was so ______ that many students fell asleep.'",
+        options: ["monotonous", "fascinating", "interactive", "controversial"],
+        correctAnswer: "monotonous",
+        orderIndex: 1
+      },
+      {
+        content: "Vocabulary Question 2: Choose the word that best fits: 'The company's ______ approach to environmental issues impressed investors.'",
+        options: ["negligent", "innovative", "traditional", "aggressive"],
+        correctAnswer: "innovative",
+        orderIndex: 2
+      },
+      {
+        content: "Vocabulary Question 3: Select the appropriate word: 'Despite the ______ weather, the outdoor concert was a huge success.'",
+        options: ["pleasant", "unpredictable", "inclement", "mild"],
+        correctAnswer: "inclement",
+        orderIndex: 3
+      },
+      {
+        content: "Vocabulary Question 4: Complete the sentence: 'The detective's ______ investigation revealed crucial evidence.'",
+        options: ["superficial", "thorough", "hasty", "biased"],
+        correctAnswer: "thorough",
+        orderIndex: 4
+      },
+      {
+        content: "Vocabulary Question 5: Choose the best word: 'The artist's work shows a ______ blend of traditional and modern techniques.'",
+        options: ["crude", "sophisticated", "simple", "awkward"],
+        correctAnswer: "sophisticated",
+        orderIndex: 5
+      }
+    ];
+    
+    // Create questions
+    const createdQuestions = [];
+    for (const q of sampleQuestions) {
+      const questionData = {
+        questionBankId,
+        content: q.content,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        explanation: "",
+        difficulty: "medium" as const,
+        orderIndex: q.orderIndex,
+      };
+      
+      const created = await questionService.createQuestion(questionData);
+      createdQuestions.push(created);
+    }
+    
+    res.json({ 
+      message: "Questions recreated successfully", 
+      count: createdQuestions.length,
+      questions: createdQuestions 
+    });
+  } catch (error) {
+    console.error("Error recreating questions:", error);
+    res.status(500).json({ message: "Failed to recreate questions", error: String(error) });
   }
 });
 

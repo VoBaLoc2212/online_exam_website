@@ -28,10 +28,10 @@ export function useWebSocket(sessionId?: string) {
   };
   
   useEffect(() => {
-    // Nếu chưa login/register thì không connect
+    // Don't connect if not logged in/registered yet
     if (!sessionId) return;
 
-    // Nếu muốn disable WS hoàn toàn (ví dụ server chưa bật)
+    // If you want to disable WS completely (e.g. server not started)
     if (import.meta.env.VITE_DISABLE_WS === 'true') {
       console.warn('WebSocket disabled (VITE_DISABLE_WS=true)');
       return;

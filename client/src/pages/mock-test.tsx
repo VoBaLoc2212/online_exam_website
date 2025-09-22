@@ -8,7 +8,7 @@ import { TestInterface } from "@/components/test/test-interface";
 import { useTranslation } from "@/lib/i18n";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useRoute } from "wouter";
 import { 
   Play, 
   Clock, 
@@ -49,27 +49,59 @@ interface Question {
   explanation?: string;
 }
 
+interface CompletionStatus {
+  hasCompleted: boolean;
+}
+
 export default function MockTest() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [location, navigate] = useLocation();
+  const [match, params] = useRoute("/mock-test/:id");
   const [selectedTestType, setSelectedTestType] = useState<string>('all');
   const [activeSession, setActiveSession] = useState<TestSession | null>(null);
   const [sessionQuestions, setSessionQuestions] = useState<Question[]>([]);
 
+  const testId = params?.id;
   const { data: tests, isLoading } = useQuery<Test[]>({
-    queryKey: ['/api/tests']
+    queryKey: ['/api/tests/all']
+  });
+
+  // Get completion status for all tests
+  const { data: allCompletionStatus } = useQuery<Record<string, boolean>>({
+    queryKey: ['/api/tests/completion-status'],
+    enabled: !!tests && tests.length > 0,
+  });
+
+  // Check if user has completed this test (for individual test access)
+  const { data: completionStatus, isLoading: isCheckingCompletion } = useQuery<CompletionStatus>({
+    queryKey: [`/api/tests/${testId}/completed`],
+    enabled: !!testId,
   });
 
   const createSessionMutation = useMutation({
     mutationFn: async (testId: string) => {
-      const response = await apiRequest('POST', '/api/test-sessions', { testId });
+      // Get the test to calculate timeRemaining
+      const test = tests?.find(t => t.id === testId);
+      if (!test) {
+        throw new Error('Test not found');
+      }
+      
+      const sessionData = {
+        testId,
+        timeRemaining: test.timeLimit * 60, // Convert minutes to seconds
+        currentQuestionIndex: 0,
+        answers: {},
+        markedQuestions: []
+      };
+      
+      const response = await apiRequest('POST', '/api/test-sessions', sessionData);
       return response.json();
     },
     onSuccess: (session) => {
       setActiveSession(session);
-      toast({ title: "Test started successfully" });
+      toast({ title: t('testStartedSuccessfully') });
     },
     onError: () => {
       toast({ 
@@ -95,7 +127,7 @@ export default function MockTest() {
       return response.json();
     },
     onSuccess: ({ result }) => {
-      toast({ title: "Test completed successfully" });
+      toast({ title: t('testCompletedSuccessfully') });
       navigate(`/results/${result.id}`);
     },
     onError: () => {
@@ -118,14 +150,73 @@ export default function MockTest() {
     }
   }, [testWithQuestions]);
 
+  const handleStartTest = async (testId: string) => {
+    // Check if user has completed this test before starting
+    try {
+      const response = await fetch(`/api/tests/${testId}/completed`, {
+        credentials: 'include'
+      });
+      const completionData = await response.json();
+      
+      if (completionData.hasCompleted) {
+        toast({ 
+          title: t('testAlreadyCompleted'), 
+          description: t('testCompletedMessage'),
+          variant: "destructive" 
+        });
+        return;
+      }
+      
+      // If not completed, proceed to start the test
+      createSessionMutation.mutate(testId);
+    } catch (error) {
+      toast({ 
+        title: "Check Error", 
+        description: "Unable to check test completion status.",
+        variant: "destructive" 
+      });
+    }
+  };
+
+  // Auto-start test if test ID is provided in URL
+  React.useEffect(() => {
+    if (testId && !activeSession && tests && completionStatus !== undefined) {
+      const test = tests.find(t => t.id === testId);
+      
+      if (completionStatus?.hasCompleted) {
+        toast({ 
+          title: t('testAlreadyCompleted'), 
+          description: t('testCompletedMessage'),
+          variant: "destructive" 
+        });
+        navigate('/results');
+        return;
+      }
+      
+      if (test && test.isActive) {
+        handleStartTest(testId);
+      } else if (test && !test.isActive) {
+        toast({ 
+          title: "Test not available", 
+          description: "This test is currently inactive",
+          variant: "destructive" 
+        });
+        navigate('/mock-test');
+      } else if (tests.length > 0) {
+        toast({ 
+          title: "Test not found", 
+          description: "The requested test could not be found",
+          variant: "destructive" 
+        });
+        navigate('/mock-test');
+      }
+    }
+  }, [testId, tests, activeSession, completionStatus]);
+
   const filteredTests = tests?.filter(test => {
     const typeMatch = selectedTestType === 'all' || test.testType === selectedTestType;
     return typeMatch && test.isActive;
   }) || [];
-
-  const handleStartTest = async (testId: string) => {
-    createSessionMutation.mutate(testId);
-  };
 
   const handleAnswerChange = (questionId: string, answer: string) => {
     if (!activeSession) return;
@@ -178,6 +269,31 @@ export default function MockTest() {
     }
   };
 
+  // Handle test termination due to anti-cheat violation
+  const handleTestTermination = async (reason: string) => {
+    try {
+      // Call API to terminate test with 0 score
+      const terminationData = {
+        sessionId: activeSession?.id,
+        reason: reason
+      };
+      
+      await apiRequest('POST', '/api/test-sessions/terminate', terminationData);
+      
+      toast({
+        title: t('testTerminated'),
+        description: t('testTerminatedDueToViolation'),
+        variant: "destructive"
+      });
+      
+      // Clear active session to return to test list
+      setActiveSession(null);
+      queryClient.invalidateQueries({ queryKey: ['activeSession'] });
+    } catch (error) {
+      console.error('Error terminating test:', error);
+    }
+  };
+
   // If there's an active session, show the test interface
   if (activeSession && sessionQuestions.length > 0) {
     return (
@@ -185,24 +301,18 @@ export default function MockTest() {
         session={activeSession}
         questions={sessionQuestions}
         testName={(testWithQuestions as any)?.name || 'Mock Test'}
+        isFullMockTest={true}
         onAnswerChange={handleAnswerChange}
         onQuestionNavigate={handleQuestionNavigate}
         onMarkQuestion={handleMarkQuestion}
         onSubmitTest={handleSubmitTest}
+        onTestTerminated={handleTestTermination}
       />
     );
   }
 
   return (
     <div className="space-y-6" data-testid="mock-test-page">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground mb-2">{t('mockTests')}</h1>
-        <p className="text-muted-foreground">
-          Take full mock tests to simulate real exam conditions
-        </p>
-      </div>
-
       {/* Filters */}
       <Card>
         <CardContent className="p-6">
@@ -216,10 +326,10 @@ export default function MockTest() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="aptis">APTIS ESOL</SelectItem>
-                  <SelectItem value="vstep">VSTEP</SelectItem>
-                  <SelectItem value="custom">Custom</SelectItem>
+                  <SelectItem value="all">{t('allTypes')}</SelectItem>
+                  <SelectItem value="aptis">{t('aptisEsol')}</SelectItem>
+                  <SelectItem value="vstep">{t('vstep')}</SelectItem>
+                  <SelectItem value="custom">{t('custom')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -228,7 +338,7 @@ export default function MockTest() {
               <Link href="/test-management">
                 <Button variant="outline">
                   <Target className="w-4 h-4 mr-2" />
-                  Manage Tests
+                  {t('manageTests')}
                 </Button>
               </Link>
             </div>
@@ -302,28 +412,51 @@ export default function MockTest() {
                   <div className="flex items-center justify-between">
                     <span className="flex items-center">
                       <FileText className="w-4 h-4 mr-1" />
-                      Questions
+                        {t('questionsCount').charAt(0).toUpperCase() + t('questionsCount').slice(1)}
                     </span>
                     <span className="font-medium">{test.totalQuestions}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="flex items-center">
                       <Clock className="w-4 h-4 mr-1" />
-                      Time Limit
+                      {t('timeLimit')}
                     </span>
                     <span className="font-medium">{test.timeLimit} min</span>
                   </div>
                 </div>
 
-                <Button 
-                  className="w-full" 
-                  onClick={() => handleStartTest(test.id)}
-                  disabled={createSessionMutation.isPending}
-                  data-testid={`start-test-${test.id}`}
-                >
-                  <Play className="w-4 h-4 mr-2" />
-                  {createSessionMutation.isPending ? t('loading') : 'Start Mock Test'}
-                </Button>
+                {allCompletionStatus?.[test.id] ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                      <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
+                      <span className="text-sm font-medium text-green-800 dark:text-green-200">
+                        {t('alreadycompletedTest')}
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" className="flex-1" asChild>
+                        <Link href="/results">
+                          {t('viewResults')}
+                        </Link>
+                      </Button>
+                      <Button variant="outline" className="flex-1" asChild>
+                        <Link href="/practice">
+                          {t('practiceMore')}
+                        </Link>
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button 
+                    className="w-full" 
+                    onClick={() => handleStartTest(test.id)}
+                    disabled={createSessionMutation.isPending}
+                    data-testid={`start-test-${test.id}`}
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    {createSessionMutation.isPending ? t('loading') : t('startMockTest')}
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ))
@@ -343,7 +476,7 @@ export default function MockTest() {
               <ul className="text-sm text-muted-foreground space-y-1">
                 <li>• Ensure you have a stable internet connection</li>
                 <li>• Find a quiet environment with minimal distractions</li>
-                <li>• Close unnecessary browser tabs and applications</li>
+                <li>• {t('closeUnnecessaryTabs')}</li>
                 <li>• Have your headphones ready for listening sections</li>
               </ul>
             </div>
@@ -355,7 +488,7 @@ export default function MockTest() {
               <ul className="text-sm text-muted-foreground space-y-1">
                 <li>• Your session will be monitored for security</li>
                 <li>• Avoid switching tabs or windows</li>
-                <li>• Use the mark for review feature for difficult questions</li>
+                <li>• {t('markForReviewDifficult')}</li>
                 <li>• Keep track of your time remaining</li>
               </ul>
             </div>

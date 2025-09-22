@@ -84,14 +84,7 @@ export default function Results() {
 
   return (
     <div className="space-y-6" data-testid="results-page">
-      {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">{t('results')}</h1>
-          <p className="text-muted-foreground">
-            Track your progress and analyze your performance
-          </p>
-        </div>
         <div className="flex space-x-2">
           <Button variant="outline" size="sm">
             <Filter className="w-4 h-4 mr-2" />
@@ -106,9 +99,9 @@ export default function Results() {
 
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="detailed">Detailed Results</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="overview">{t('overview')}</TabsTrigger>
+          <TabsTrigger value="detailed">{t('detailedResults')}</TabsTrigger>
+          <TabsTrigger value="analytics">{t('analytics')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -152,7 +145,7 @@ export default function Results() {
                   <span className={`text-sm font-medium ${(analytics?.recentTrend || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {Math.abs(analytics?.recentTrend || 0).toFixed(1)}%
                   </span>
-                  <span className="text-sm text-muted-foreground ml-2">vs last month</span>
+                  <span className="text-sm text-muted-foreground ml-2">{t('vsLastMonth')}</span>
                 </div>
               </CardContent>
             </Card>
@@ -161,7 +154,7 @@ export default function Results() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Best Score</p>
+                    <p className="text-sm font-medium text-muted-foreground">{t('bestScore')}</p>
                     <p className="text-2xl font-bold text-foreground" data-testid="best-score">
                       {analytics?.bestScore || 0}%
                     </p>
@@ -177,7 +170,7 @@ export default function Results() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Time Spent</p>
+                    <p className="text-sm font-medium text-muted-foreground">{t('timeSpent')}</p>
                     <p className="text-2xl font-bold text-foreground" data-testid="time-spent">
                       {formatDuration(analytics?.timeSpent || 0)}
                     </p>
@@ -223,7 +216,7 @@ export default function Results() {
               <div className="flex items-center justify-between">
                 <CardTitle>{t('recentTests')}</CardTitle>
                 <Button variant="ghost" size="sm" asChild>
-                  <Link href="#detailed">View All</Link>
+                  <Link href="#detailed">{t('viewAll')}</Link>
                 </Button>
               </div>
             </CardHeader>
@@ -285,7 +278,7 @@ export default function Results() {
         <TabsContent value="detailed" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>All Test Results</CardTitle>
+              <CardTitle>{t('allTestResults')}</CardTitle>
             </CardHeader>
             <CardContent>
               {isLoading ? (
@@ -360,13 +353,13 @@ export default function Results() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Performance Trend</CardTitle>
+                <CardTitle>{t('performanceTrend')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-64 flex items-center justify-center text-muted-foreground">
                   <div className="text-center">
                     <BarChart3 className="w-12 h-12 mx-auto mb-2" />
-                    <p>Performance chart would be displayed here</p>
+                    <p>{t('performanceChart')}</p>
                   </div>
                 </div>
               </CardContent>
@@ -374,7 +367,7 @@ export default function Results() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Skill Distribution</CardTitle>
+                <CardTitle>{t('skillDistribution')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-64 flex items-center justify-center text-muted-foreground">
